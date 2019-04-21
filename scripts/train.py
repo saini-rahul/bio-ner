@@ -3,13 +3,18 @@
 from load_data import load_datasets
 from utilities import preprocess_sentences, create_vocab, create_vocab_tags, prepare_input, prepare_tags, load_embedding_matrix, prepare_model, fit_model
 
+CLIP_SEN = 20000
+
 # STEP 1: load datasets
 # ds_sentences[i] contains the list of sentences for dataset i, and ds_tags[i] the corresponding tags
 ds_sentences, ds_tags = load_datasets () # by default, this will load the training datasets
 
+
 # STEP 2: pre-process the data
-# replace digits, and lowercase the words across each dataset
+# replace digits across each dataset
 for i, sentences in enumerate(ds_sentences): # iterate over each dataset
+    sentences = sentences[:20000]
+    ds_tags[i] = ds_tags[i][:20000]
     ds_sentences[i] = preprocess_sentences (sentences)
 
 # STEP 3: create and save vocabulary dictionaries for words, and characters

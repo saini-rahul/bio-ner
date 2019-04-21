@@ -13,15 +13,15 @@ from keras_contrib.metrics import crf_viterbi_accuracy, crf_accuracy
 import time
 import matplotlib.pyplot as plt
 from seqeval.metrics import precision_score, recall_score, f1_score, classification_report
-
+from gensim.models import KeyedVectors
 
 DICT_PATH = '../data/dict/' 
 MODEL_PATH = '../model/'
-EMBEDDING_FILE = '../word_embeddings/' + 'glove.6B.100d.txt'
-EMBEDDING_DIM = 100
-CHAR_EMBEDDING_DIM = 10
+EMBEDDING_FILE = '../word_embeddings/' + 'PubMed-w2v.bin'
+EMBEDDING_DIM = 200
+CHAR_EMBEDDING_DIM = 30
 NUM_DS = 4
-EPOCHS = 20
+EPOCHS = 30
 MODEL_NAME = 'model20190418-205238.h5'
 HISTORY_FILE = 'history20190418-205238.json'
 PRINT_TO_SCREEN = False
@@ -267,7 +267,7 @@ def fit_model (model, ds_X_word, ds_X_char, ds_y):
                     batch_size=32, epochs=EPOCHS, validation_split=0.1, verbose=1, shuffle=True)
         else:
             history = model.fit([X_word, X_char],
-                        [b[0].reshape(len(X_word), max_len, 1), b[1].reshape(len(X_word), max_len, 1), b[2].reshape(len(X_word), max_len, 1), b[3].reshape(len(X_word), max_len, 1)],
+                        [b[0].reshape(len(X_word), max_len, 1), b[1].reshape(len(X_word), max_len, 1), b[2].reshape(len(X_word), max_len, 1), b[3].reshape(len(X_word), max_len, 1), b[4].reshape(len(X_word), max_len, 1)],
                         batch_size=32, epochs=EPOCHS, validation_split=0.1, verbose=1)
     else:
         y = np.array(y)
@@ -325,7 +325,7 @@ def prepare_model (embedding_matrix, num_ds):
                              input_length=max_len_char, mask_zero=True))(char_in)
 
   # learn a word embedding from the character via a bi-LSTM
-  char_enc = TimeDistributed(Bidirectional(LSTM(units=20, return_sequences=False,
+  char_enc = TimeDistributed(Bidirectional(LSTM(units=50, return_sequences=False,
                                   recurrent_dropout=0.5)))(emb_char)
 
   # concatenate the word embedding with the embedding derived from characters
@@ -407,8 +407,6 @@ def preprocess_sentences (sentences):
     # replace digits with the word DIGIT
     sentences = remove_digits (sentences)
 
-    # lowercase the entire sentences
-    sentences = lowercase_data (sentences)
     return sentences
 
 def create_vocab_tags(ds_tags):
@@ -563,26 +561,20 @@ def prepare_tags (ds_tags):
 # pre-trained embeddings trained on much larger training data.
 def load_embedding_matrix ():
   # try to load the embedding matrix first if it already exists
-  word2idx = load_dict ('word2idx.json')
   try:
+    word2idx = load_dict ('word2idx.json')
+
     embedding_matrix = np.load(DICT_PATH + 'embedding_matrix.npy')
     if (embedding_matrix.shape[0] != len (word2idx)):
         raise # the embedding matrix might have been loaded for some other dataset 
   except:
     embedding_index = {}
     print ('embedding matrix is not populated from pre-trained embeddings. Populating now, this will take time...')
-    f = open(EMBEDDING_FILE,  'r', encoding='utf-8', newline='\n', errors='ignore')
-    for line in f:
-        values = line.split()
-        word = values[0]
-        coefs = np.asarray(values[1:], dtype='float32')
-        embedding_index[word] = coefs
-    f.close()
-    print('Loaded %s word vectors.' % len(embedding_index))
     
-        
+    wv = KeyedVectors.load_word2vec_format(EMBEDDING_FILE, binary=True)
+    
     # create embedding matrix from the embedding index now.
-    embedding_matrix = np.zeros((len(word2idx), EMBEDDING_DIM))
+    embedding_matrix = (np.random.rand (len(word2idx), EMBEDDING_DIM)-0.5)/5.0
     for word, i in word2idx.items():
         embedding_vector = embedding_index.get(word)
         if embedding_vector is not None:
