@@ -129,7 +129,7 @@ def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
             y = ds_y [i]
         
             #predict 
-            test_pred = model.predict ([x_word, x_char])
+            test_pred = model.predict ([np.array(x_word, dtype="float32") , np.array(x_char, dtype="float32")])
             tag2idx = load_dict_after('tag2idx.json')
             n_tags  = len (tag2idx)
             idx2tag = flip_dict(tag2idx)
@@ -187,19 +187,23 @@ def draw_figures():
 
 # predict
 def predict (sentence, loaded_model):
-    padding_len = load_dict('padding_len.json')
+    padding_len = load_dict_after('padding_len.json')
     max_len = padding_len['max_len']
     max_len_char = padding_len['max_len_char']
 
+    idx2tag = {}
     ds_idx2tag = []
     ds_n_tags = []
-
-    for i in range (NUM_DS):
-        tag2idx = load_dict('tag2idx' + str(i) + '.json')
-        n_tags  = len (tag2idx)
+    if MULTI_OUT:
+        for i in range (NUM_DS):
+            tag2idx = load_dict_after('tag2idx' + str(i) + '.json')
+            n_tags  = len (tag2idx)
+            idx2tag = flip_dict(tag2idx)
+            ds_idx2tag.append(idx2tag)
+            ds_n_tags.append(n_tags)
+    else:
+        tag2idx = load_dict_after('tag2idx.json')
         idx2tag = flip_dict(tag2idx)
-        ds_idx2tag.append(idx2tag)
-        ds_n_tags.append(n_tags)
 
     # tokenize it, and form a list of list
     tokens = word_tokenize(sentence)
@@ -220,25 +224,35 @@ def predict (sentence, loaded_model):
     ds_y_pred = model.predict([np.array(X_word).reshape( (len(X_word), max_len) ), np.array(X_char).reshape((len(X_char), max_len, max_len_char))])
     
     return_tags = [] # this will store the tags associated with the input sentence 
-    
-    for idx, y_pred in enumerate(ds_y_pred): # prediction across each dataset
-        i = 0
-        p = np.argmax(y_pred[i], axis=-1) # list of predicted tags for each of the max_len words in this sentence
-        constrained_p = p [:len(original_tokens)]
-        if not np.all(constrained_p == 0): # only if this sentence is relevant for this domain
-            if PRINT_TO_SCREEN == True:
-                print("{:15}||{}".format("Word", "Pred"))
-                print(30 * "=")
-            return_tag = [] # tags returned by this dataset
-            for w, pred in zip(original_tokens, p):
-                return_tag.append(ds_idx2tag[idx][pred])
-                # if all the tags are just PAD we ignore this dataset
+    if MULTI_OUT: 
+        for idx, y_pred in enumerate(ds_y_pred): # prediction across each dataset
+            i = 0
+            p = np.argmax(y_pred[i], axis=-1) # list of predicted tags for each of the max_len words in this sentence
+            constrained_p = p [:len(original_tokens)]
+            if not np.all(constrained_p == 0): # only if this sentence is relevant for this domain
                 if PRINT_TO_SCREEN == True:
-                    print("{:15}: {}".format(w, ds_idx2tag[idx][pred]))
-            return_tags.append(return_tag)
-            if PRINT_TO_SCREEN == True:
-                print ('********')
-
+                    print("{:15}||{}".format("Word", "Pred"))
+                    print(30 * "=")
+                return_tag = [] # tags returned by this dataset
+                for w, pred in zip(original_tokens, p):
+                    return_tag.append(ds_idx2tag[idx][pred])
+                    # if all the tags are just PAD we ignore this dataset
+                    if PRINT_TO_SCREEN == True:
+                        print("{:15}: {}".format(w, ds_idx2tag[idx][pred]))
+                return_tags.append(return_tag)
+                if PRINT_TO_SCREEN == True:
+                    print ('********')
+    else:
+        i = 0
+        p = np.argmax(ds_y_pred[i], axis=-1) # list of predicted tags for each of the max_len words in this sentence
+        constrained_p = p [:len(original_tokens)]
+        print("{:15}||{}".format("Word", "Pred"))
+        print(30 * "=")
+        return_tag = [] # tags returned by this dataset
+        for w, pred in zip(original_tokens, p):
+            return_tag.append(idx2tag[pred] )
+            print("{:15}: {}".format(w, idx2tag[pred]))
+        return_tags.append (return_tag)
     return original_tokens, return_tags
         
 # fit model
