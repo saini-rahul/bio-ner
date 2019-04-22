@@ -9,8 +9,8 @@
 #SBATCH --ntasks=1                   #Request 1 task
 #SBATCH --mem=16G                  #Request 2560MB (2.5GB) per node
 #SBATCH --output=Example4Out.%j      #Send stdout/err to "Example4Out.[jobID]"
-#SBATCH --gres=gpu:1                 #Request 1 GPU per node can be 1 or 2
-#SBATCH --partition=gpu              #Request the GPU partition/queue
+##SBATCH --gres=gpu:1                 #Request 1 GPU per node can be 1 or 2
+##SBATCH --partition=gpu              #Request the GPU partition/queue
 
 ##OPTIONAL JOB SPECIFICATIONS
 ml Python/3.5.2-intel-2017A

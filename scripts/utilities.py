@@ -1,5 +1,6 @@
 # this program has all the common utility functions
 import json
+import os
 from keras.preprocessing.sequence import pad_sequences
 import numpy as np
 from keras.models import Model, Input
@@ -15,19 +16,21 @@ import matplotlib.pyplot as plt
 from seqeval.metrics import precision_score, recall_score, f1_score, classification_report
 from gensim.models import KeyedVectors
 
-DICT_PATH = '../data/dict/' 
+timestr = time.strftime("%Y%m%d-%H%M%S") # to differentiate the models, and dictionaries generated during this run.
+DICT_PATH = '../data/dict/'
+TIMESTR = ''    # fill it with appropriate model's dictionary 
 MODEL_PATH = '../model/'
 EMBEDDING_FILE = '../word_embeddings/' + 'PubMed-w2v.bin'
 #EMBEDDING_FILE = '../word_embeddings/' +  'glove.6B.100d.txt'
 EMBEDDING_DIM = 200
 CHAR_EMBEDDING_DIM = 10
-NUM_DS = 5
-EPOCHS = 10
+NUM_DS = 4
+EPOCHS = 30
 MODEL_NAME = 'model20190422-081523.h5'
 HISTORY_FILE = 'history20190422-081523.json'
 PRINT_TO_SCREEN = False
 USE_CRF = True # if True, uses a CRF layer, if False uses a Dense layer
-
+MULTI_OUT = False # is True, uses multiple output, else clubs them together as one
 
 # convert tags to multiple output format
 def convert_to_multi_output (ds_y, max_len):
@@ -216,7 +219,7 @@ def fit_model (model, ds_X_word, ds_X_char, ds_y):
     max_len_char = padding_len['max_len_char']
     
     y = []
-    if USE_CRF == True:
+    if MULTI_OUT == True:
         # each ds_y[i] should be made
         # expected input: list of [X_word, X_char]
         # expected output: [ [], [], [] ]
@@ -255,7 +258,7 @@ def fit_model (model, ds_X_word, ds_X_char, ds_y):
     X_word = X_word[indices]
     X_char = X_char[indices]
    
-    if USE_CRF == True: 
+    if MULTI_OUT == True: 
         b = np.array (y)
         for i, bucket in enumerate(y):
             bucket = np.array(bucket, dtype="float32")
@@ -275,8 +278,7 @@ def fit_model (model, ds_X_word, ds_X_char, ds_y):
         y = y[indices]
         history = model.fit([X_word, X_char.reshape(len(X_char), max_len, max_len_char)], y.reshape(len(X_word), max_len, 1), batch_size=32, epochs=EPOCHS, validation_split=0.1, verbose=1, shuffle=True)
       
-    timestr = time.strftime("%Y%m%d-%H%M%S")
-    
+        
     model.save(MODEL_PATH + 'model' + timestr + '.h5')
     
     # dump the accuracy, and loss metrics
@@ -337,21 +339,25 @@ def prepare_model (embedding_matrix, num_ds):
   # encode the entire sentence, and learn context between words via bi-LSTM
   main_lstm = Bidirectional(LSTM(units=50, return_sequences=True,
                                  recurrent_dropout=0.6))(x)
+  all_tag2idx = load_dict('tag2idx.json')
+  all_n_tags =  len(all_tag2idx)
 
   if USE_CRF:
     dense = TimeDistributed(Dense(50, activation="relu"))(main_lstm)
     outs =[]
-    for i in range (num_ds):
-        crf = CRF(ds_n_tags[i], sparse_target=True)  # CRF layer
+    if MULTI_OUT: #push multiple CRF models
+        for i in range (num_ds):
+            crf = CRF(ds_n_tags[i], sparse_target=True)  # CRF layer
+            out = crf(dense)  # output
+            outs.append (out)
+    else:
+        crf = CRF(all_n_tags, sparse_target=True)  # CRF layer
         out = crf(dense)  # output
         outs.append (out)
 
     model = Model(inputs=[word_in, char_in], outputs= outs)
     model.compile(optimizer="rmsprop", loss=crf_loss, metrics=[crf_accuracy])
   else:
-    # load the common tags
-    all_tag2idx = load_dict('tag2idx.json')
-    all_n_tags =  len(all_tag2idx)
     out = TimeDistributed(Dense(all_n_tags, activation="softmax"))(main_lstm)
     model = Model([word_in, char_in], out)
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["acc"]) 
@@ -430,7 +436,7 @@ def create_vocab_tags(ds_tags):
     print ('Number of unique tags in training set (including PAD) for dataset '+str(i)+': ', len (tag2idx))
  
     # dump the dictionary
-    with open(DICT_PATH + 'tag2idx'+str(i)+'.json', 'w') as fp:
+    with open(DICT_PATH + timestr + 'tag2idx'+str(i)+'.json', 'w') as fp:
         json.dump(tag2idx, fp)
 
   # vocab for consolidated tags 
@@ -441,7 +447,7 @@ def create_vocab_tags(ds_tags):
   print ('Number of unique tags in training set (including PAD) across all datasets ', len (tag2idx))
 
   # dump the dictionary
-  with open(DICT_PATH + 'tag2idx.json', 'w') as fp:
+  with open(DICT_PATH + timestr + 'tag2idx.json', 'w') as fp:
         json.dump(tag2idx, fp)
 
 
@@ -460,9 +466,9 @@ def create_vocab(sentences):
   word2idx["PAD"] = 0 # PAD-ding word  for sentences
  
   print ('Number of unique words in training set (including PAD, UNK): ', len (word2idx))
- 
+   
   # dump the dictionary
-  with open(DICT_PATH + 'word2idx.json', 'w') as fp:
+  with open(DICT_PATH + timestr + 'word2idx.json', 'w') as fp:
     json.dump(word2idx, fp)
 
   # characters
@@ -474,8 +480,9 @@ def create_vocab(sentences):
  
   print ('Number of unique characters in training set (including PAD, UNK): ', len(char2idx))
  
+   
   # dump the dictionary
-  with open(DICT_PATH + 'char2idx.json', 'w') as fp:
+  with open(DICT_PATH + timestr  + 'char2idx.json', 'w') as fp:
     json.dump(char2idx, fp)
   
   max_len = max([len (s) for s in sentences])
@@ -487,12 +494,12 @@ def create_vocab(sentences):
   padding_len = {'max_len': max_len, 'max_len_char': max_len_char}
 
   # dump max_len, and max_len_char
-  with open(DICT_PATH + 'padding_len.json', 'w') as fp:
+  with open(DICT_PATH + timestr + 'padding_len.json', 'w') as fp:
     json.dump(padding_len, fp) 
 
 # function to load the dictionaries
 def load_dict(dict_name):
-  with open(DICT_PATH + dict_name, 'r') as fp:
+  with open(DICT_PATH + timestr + dict_name, 'r') as fp:
     data = json.load(fp)
   return data
 
@@ -542,7 +549,7 @@ def prepare_tags (ds_tags):
   all_tag2idx =  load_dict('tag2idx.json')
   for i, tags in enumerate(ds_tags):
     # load dictionary
-    if USE_CRF:
+    if MULTI_OUT:
         tag2idx = load_dict('tag2idx' + str(i) + '.json')
     else:
         tag2idx = all_tag2idx
@@ -568,7 +575,7 @@ def load_embedding_matrix ():
   try:
     word2idx = load_dict ('word2idx.json')
 
-    embedding_matrix = np.load(DICT_PATH + 'embedding_matrix.npy')
+    embedding_matrix = np.load(DICT_PATH + timestr + 'embedding_matrix.npy')
     if (embedding_matrix.shape[0] != len (word2idx)):
         raise # the embedding matrix might have been loaded for some other dataset 
   except:
@@ -600,6 +607,6 @@ def load_embedding_matrix ():
     print ("Embedding matrix created.\n")
     
     # save it for future purpose
-    np.save(DICT_PATH + 'embedding_matrix', embedding_matrix)  
+    np.save(DICT_PATH + timestr  + 'embedding_matrix', embedding_matrix)  
 
   return embedding_matrix
