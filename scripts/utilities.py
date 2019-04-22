@@ -23,8 +23,8 @@ EMBEDDING_DIM = 200
 CHAR_EMBEDDING_DIM = 10
 NUM_DS = 5
 EPOCHS = 10
-MODEL_NAME = 'model20190418-205238.h5'
-HISTORY_FILE = 'history20190418-205238.json'
+MODEL_NAME = 'model20190422-081523.h5'
+HISTORY_FILE = 'history20190422-081523.json'
 PRINT_TO_SCREEN = False
 USE_CRF = True # if True, uses a CRF layer, if False uses a Dense layer
 
@@ -89,7 +89,7 @@ def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
     
     print (model.metrics_names)       
 
-    scores = model.evaluate( [X_word, X_char] , [np.array(y[0], dtype="float32").reshape(len(X_word), max_len,1) , np.array(y[1], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[2], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[3], dtype="float32").reshape(len(X_word), max_len,1)  ] , verbose=1 )
+    scores = model.evaluate( [X_word, X_char] , [np.array(y[0], dtype="float32").reshape(len(X_word), max_len,1) , np.array(y[1], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[2], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[3], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[4], dtype="float32").reshape(len(X_word), max_len,1)   ] , verbose=1 )
     print (scores)
     test_pred = model.predict ([X_word, X_char])
      
