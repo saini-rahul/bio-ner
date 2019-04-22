@@ -5,17 +5,22 @@ from utilities import preprocess_sentences, create_vocab, create_vocab_tags, pre
 
 CLIP_SEN = 20000
 
+
+print ("B: load")
 # STEP 1: load datasets
 # ds_sentences[i] contains the list of sentences for dataset i, and ds_tags[i] the corresponding tags
 ds_sentences, ds_tags = load_datasets () # by default, this will load the training datasets
 
+print ("B: preprocess")
 
 # STEP 2: pre-process the data
 # replace digits across each dataset
 for i, sentences in enumerate(ds_sentences): # iterate over each dataset
-    sentences = sentences[:20000]
-    ds_tags[i] = ds_tags[i][:20000]
+    sentences = sentences[:10000]
+    ds_tags[i] = ds_tags[i][:10000]
     ds_sentences[i] = preprocess_sentences (sentences)
+
+print ("B: create_vocab")
 
 # STEP 3: create and save vocabulary dictionaries for words, and characters
 # as well as the length of each sentence, and length of each word
@@ -23,6 +28,8 @@ consolidated_sen = []
 for sentences in ds_sentences:
     consolidated_sen.extend (sentences)
 create_vocab (consolidated_sen) # we will have just one common vocab across all datasets
+
+print ("B: tags vocab")
 
 # STEP 4: create separate vocab of tags across each dataset
 create_vocab_tags (ds_tags)
@@ -40,6 +47,7 @@ for sentences in ds_sentences:
     ds_X_char.append (X_char)
 
 print ('Padding done!')
+
 
 # STEP 6: For each dataset, prepare tags by converting them to indices
 ds_y = prepare_tags (ds_tags)

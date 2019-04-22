@@ -18,10 +18,11 @@ from gensim.models import KeyedVectors
 DICT_PATH = '../data/dict/' 
 MODEL_PATH = '../model/'
 EMBEDDING_FILE = '../word_embeddings/' + 'PubMed-w2v.bin'
+#EMBEDDING_FILE = '../word_embeddings/' +  'glove.6B.100d.txt'
 EMBEDDING_DIM = 200
-CHAR_EMBEDDING_DIM = 30
-NUM_DS = 4
-EPOCHS = 30
+CHAR_EMBEDDING_DIM = 10
+NUM_DS = 5
+EPOCHS = 10
 MODEL_NAME = 'model20190418-205238.h5'
 HISTORY_FILE = 'history20190418-205238.json'
 PRINT_TO_SCREEN = False
@@ -407,6 +408,9 @@ def preprocess_sentences (sentences):
     # replace digits with the word DIGIT
     sentences = remove_digits (sentences)
 
+    # lowercase the entire sentences
+    #sentences = lowercase_data (sentences)
+
     return sentences
 
 def create_vocab_tags(ds_tags):
@@ -570,16 +574,29 @@ def load_embedding_matrix ():
   except:
     embedding_index = {}
     print ('embedding matrix is not populated from pre-trained embeddings. Populating now, this will take time...')
-    
+   
+    #f = open(EMBEDDING_FILE,  'r', encoding='utf-8', newline='\n', errors='ignore')
+    #for line in f:
+     #   values = line.split()
+  #      word = values[0]
+   #     coefs = np.asarray(values[1:], dtype='float32')
+    #    embedding_index[word] = coefs
+    #f.close()
+    #print('Loaded %s word vectors.' % len(embedding_index))
+ 
     wv = KeyedVectors.load_word2vec_format(EMBEDDING_FILE, binary=True)
     
     # create embedding matrix from the embedding index now.
     embedding_matrix = (np.random.rand (len(word2idx), EMBEDDING_DIM)-0.5)/5.0
     for word, i in word2idx.items():
-        embedding_vector = embedding_index.get(word)
-        if embedding_vector is not None:
+        try:
+            embedding_matrix[i] = wv[word]
+        except:
+            continue
+        #embedding_vector = embedding_index.get(word)
+        #if embedding_vector is not None:
             # words not found in embedding index will be all-zeros.
-            embedding_matrix[i] = embedding_vector
+         #   embedding_matrix[i] = embedding_vector
     print ("Embedding matrix created.\n")
     
     # save it for future purpose

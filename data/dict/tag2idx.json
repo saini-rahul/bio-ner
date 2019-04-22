@@ -1,0 +1,1 @@
+{"I-DNA": 1, "B-cell_line": 3, "B-protein": 4, "I-protein": 16, "B-cell_type": 6, "B-RNA": 7, "B-DNA": 8, "I-cell_type": 12, "B-Disease": 9, "I-cell_line": 10, "I-Chemical": 11, "B-Chemical": 13, "I-Disease": 14, "I-RNA": 5, "PAD": 0, "I-GENE": 2, "B-GENE": 15, "O": 17}

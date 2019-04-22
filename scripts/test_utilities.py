@@ -24,6 +24,7 @@ class test_load_data(unittest.TestCase):
     def test_preprocess_sentences(self):
          out_sen =[ ['DIGITDIGIT', 'AB'], ['GENEDIGIT']]
          ret_sen = preprocess_sentences(self.sentences)
+         print (ret_sen)
          self.assertCountEqual(ret_sen, out_sen)
     
     def  test_create_vocab_tags(self):
@@ -53,9 +54,9 @@ class test_load_data(unittest.TestCase):
         e = np.load(DICT_PATH + 'embedding_matrix.npy')
         self.assertEqual(e.shape[1], 200)
 
-    def test_prepare_model (self):
+    #def test_prepare_model (self):
         
-        prepare_model (em, n)
+     #   prepare_model (em, n)
 
 if __name__ == '__main__':
     unittest.main()
