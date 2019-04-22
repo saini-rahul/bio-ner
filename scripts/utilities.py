@@ -60,10 +60,15 @@ def load_saved_model():
   
   return loaded_model
 
+# function to load the dictionaries after the run has completed
+def load_dict_after(dict_name):
+  with open(DICT_PATH + TIMESTR + dict_name, 'r') as fp:
+    data = json.load(fp)
+  return data
 
 def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
     # load padding length
-    padding_len = load_dict('padding_len.json')
+    padding_len = load_dict_after('padding_len.json')
     max_len = padding_len['max_len']
     max_len_char = padding_len['max_len_char']
  
@@ -72,7 +77,7 @@ def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
  
     # prepare the tags in terms of multiple output model, or single output
     y = []
-    if USE_CRF and len(ds_X_char) > 1:
+    if USE_CRF and MULTI_OUT:
         y = convert_to_multi_output (ds_y, max_len)
     else:
         for ds in ds_y:
@@ -91,31 +96,55 @@ def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
     X_char = np.array(X_char,  dtype="float32")
     
     print (model.metrics_names)       
-
-    scores = model.evaluate( [X_word, X_char] , [np.array(y[0], dtype="float32").reshape(len(X_word), max_len,1) , np.array(y[1], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[2], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[3], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[4], dtype="float32").reshape(len(X_word), max_len,1)   ] , verbose=1 )
-    print (scores)
-    test_pred = model.predict ([X_word, X_char])
-     
-    for i in range (len(ds_X_word)):
-        tag2idx = load_dict('tag2idx' + str(i) + '.json')
-        n_tags  = len (tag2idx)
-        idx2tag = flip_dict(tag2idx)
-        conv_pred = []
-        conv_gold = []
-        for sentence_tag in test_pred[i]:
-             p = np.argmax(sentence_tag, axis=-1)
-             p = [idx2tag[tag_idx] for tag_idx in p]
-             conv_pred.append(p)
-        for sentence_tag in y[i]:
-             sentence_tag = [idx2tag[tag_idx] for tag_idx in sentence_tag]
-             conv_gold.append(sentence_tag)
-      
-        print("F1-score: {:.1%}".format(f1_score(conv_gold, conv_pred)))
-        print(classification_report(conv_gold, conv_pred))
-
- 
-        #y[i] # true tags on sentences for dataset i 
     
+    if MULTI_OUT:
+        scores = model.evaluate( [X_word, X_char] , [np.array(y[0], dtype="float32").reshape(len(X_word), max_len,1) , np.array(y[1], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[2], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[3], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[4], dtype="float32").reshape(len(X_word), max_len,1)   ] , verbose=1 )
+    else: # single output
+        scores = model.evaluate( [X_word, X_char] , np.array(y, dtype="float32").reshape(len(X_word), max_len,1), verbose=1 )
+ 
+    print (scores)
+    if MULTI_OUT:
+        test_pred = model.predict ([X_word, X_char])
+ 
+        for i in range (len(ds_X_word)):
+            tag2idx = load_dict_after('tag2idx' + str(i) + '.json')
+            n_tags  = len (tag2idx)
+            idx2tag = flip_dict(tag2idx)
+            conv_pred = []
+            conv_gold = []
+            for sentence_tag in test_pred[i]:
+                 p = np.argmax(sentence_tag, axis=-1)
+                 p = [idx2tag[tag_idx] for tag_idx in p]
+                 conv_pred.append(p)
+            for sentence_tag in y[i]:
+                 sentence_tag = [idx2tag[tag_idx] for tag_idx in sentence_tag]
+                 conv_gold.append(sentence_tag)
+          
+            print("F1-score: {:.1%}".format(f1_score(conv_gold, conv_pred)))
+            print(classification_report(conv_gold, conv_pred))
+    else:
+       for i in range (len (ds_X_word) ):
+            x_word = ds_X_word [i]
+            x_char = ds_X_char [i]
+            y = ds_y [i]
+        
+            #predict 
+            test_pred = model.predict ([x_word, x_char])
+            tag2idx = load_dict_after('tag2idx.json')
+            n_tags  = len (tag2idx)
+            idx2tag = flip_dict(tag2idx)
+            conv_pred = []
+            conv_gold = []
+            for sentence_tag in test_pred:
+                 p = np.argmax(sentence_tag, axis=-1)
+                 p = [idx2tag[tag_idx] for tag_idx in p]
+                 conv_pred.append(p)
+            for sentence_tag in y:
+                 sentence_tag = [idx2tag[tag_idx] for tag_idx in sentence_tag]
+                 conv_gold.append(sentence_tag)
+          
+            print("F1-score: {:.1%}".format(f1_score(conv_gold, conv_pred)))
+            print(classification_report(conv_gold, conv_pred))
     
 def save_plot(hist, train_str, val_str, metric, ds_num):
     train_metric = hist [train_str]
