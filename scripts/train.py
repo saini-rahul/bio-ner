@@ -16,8 +16,8 @@ print ("B: preprocess")
 # STEP 2: pre-process the data
 # replace digits across each dataset
 for i, sentences in enumerate(ds_sentences): # iterate over each dataset
-    sentences = sentences[:10000]
-    ds_tags[i] = ds_tags[i][:10000]
+    sentences = sentences[:20000]
+    ds_tags[i] = ds_tags[i][:20000]
     ds_sentences[i] = preprocess_sentences (sentences)
 
 print ("B: create_vocab")

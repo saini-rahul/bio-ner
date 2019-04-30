@@ -1,10 +1,8 @@
 # This file is responsible for reading the datasets
-import enum
-import pickle
 from utilities import convert_list_by_key, flip_dict
 
 DATA_DIR = '../data/datasets/' # relative path of the directory where we store the datasets
-DATASETS = ["BC2GM", "BC4CHEMD", "BC5CDR-IOB", "NCBI-disease-IOB"]
+DATASETS = ["BC2GM", "BC4CHEMD", "BC5CDR-IOB", "NCBI-disease-IOB", "JNLPBA"]
 
 # function to preprocess datasets in BIO format
 def preprocess_bio (dataset, dataset_split = 'train'):

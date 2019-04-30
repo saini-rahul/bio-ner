@@ -4,7 +4,7 @@ import os
 from keras.preprocessing.sequence import pad_sequences
 import numpy as np
 from keras.models import Model, Input
-from keras.layers import LSTM, Embedding, TimeDistributed,  Bidirectional, concatenate, Dense, SpatialDropout1D
+from keras.layers import CuDNNLSTM, LSTM, Embedding, TimeDistributed,  Bidirectional, concatenate, Dense, SpatialDropout1D
 import random
 from nltk import word_tokenize 
 from keras_contrib.layers import CRF
@@ -18,19 +18,21 @@ from gensim.models import KeyedVectors
 
 timestr = time.strftime("%Y%m%d-%H%M%S") # to differentiate the models, and dictionaries generated during this run.
 DICT_PATH = '../data/dict/'
-TIMESTR = ''    # fill it with appropriate model's dictionary 
+TIMESTR = '20190426-042026'    # fill it with appropriate model's dictionary 
 MODEL_PATH = '../model/'
 EMBEDDING_FILE = '../word_embeddings/' + 'PubMed-w2v.bin'
 #EMBEDDING_FILE = '../word_embeddings/' +  'glove.6B.100d.txt'
 EMBEDDING_DIM = 200
 CHAR_EMBEDDING_DIM = 10
-NUM_DS = 4
-EPOCHS = 30
-MODEL_NAME = 'model20190422-081523.h5'
-HISTORY_FILE = 'history20190422-081523.json'
+NUM_DS = 5
+EPOCHS = 10
+MODEL_NAME = 'model20190426-042026.h5'
+HISTORY_FILE = 'history20190426-042026.json'
 PRINT_TO_SCREEN = False
 USE_CRF = True # if True, uses a CRF layer, if False uses a Dense layer
 MULTI_OUT = False # is True, uses multiple output, else clubs them together as one
+MAX_LEN = 100
+MAX_LEN_CHAR = 50
 
 # convert tags to multiple output format
 def convert_to_multi_output (ds_y, max_len):
@@ -66,11 +68,12 @@ def load_dict_after(dict_name):
     data = json.load(fp)
   return data
 
+# function to evaluate a pre-trained model on test data-set
 def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
     # load padding length
     padding_len = load_dict_after('padding_len.json')
-    max_len = padding_len['max_len']
-    max_len_char = padding_len['max_len_char']
+    max_len = min(padding_len['max_len'],MAX_LEN)
+    max_len_char = min(padding_len['max_len_char'], MAX_LEN_CHAR)
  
     # load the model in terms of CRF as output layer or Dense as output layer   
     model = load_saved_model()
@@ -99,10 +102,13 @@ def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
     
     if MULTI_OUT:
         scores = model.evaluate( [X_word, X_char] , [np.array(y[0], dtype="float32").reshape(len(X_word), max_len,1) , np.array(y[1], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[2], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[3], dtype="float32").reshape(len(X_word), max_len,1), np.array(y[4], dtype="float32").reshape(len(X_word), max_len,1)   ] , verbose=1 )
+        print (scores)
     else: # single output
-        scores = model.evaluate( [X_word, X_char] , np.array(y, dtype="float32").reshape(len(X_word), max_len,1), verbose=1 )
- 
-    print (scores)
+        # get scores for test sets from each data-set
+        for i in range(len(ds_X_word)):
+            scores = model.evaluate( [ds_X_word[i], ds_X_char[i]] , np.array(ds_y[i], dtype="float32").reshape(len(ds_X_word[i]), max_len,1), verbose=1 )
+            print (scores)
+    
     if MULTI_OUT:
         test_pred = model.predict ([X_word, X_char])
  
@@ -124,22 +130,25 @@ def evaluate_on_model (ds_X_word, ds_X_char, ds_y):
             print(classification_report(conv_gold, conv_pred))
     else:
        for i in range (len (ds_X_word) ):
-            x_word = ds_X_word [i]
-            x_char = ds_X_char [i]
-            y = ds_y [i]
-        
+            x_word = ds_X_word [i] # all the sentences in word-indexed form for dataset i
+            x_char = ds_X_char [i] # all the sentences in character-indexed form for dataset i
+            y_sen = ds_y [i]    # all the corresponding tags of the sentences
+            y_sen = np.array(y_sen)
+
             #predict 
             test_pred = model.predict ([np.array(x_word, dtype="float32") , np.array(x_char, dtype="float32")])
             tag2idx = load_dict_after('tag2idx.json')
             n_tags  = len (tag2idx)
             idx2tag = flip_dict(tag2idx)
-            conv_pred = []
-            conv_gold = []
+            conv_pred = [] # list to store the predicted tags, converted from indices
+            conv_gold = [] # list to store the actual/ gold tags, converted from indices
+
             for sentence_tag in test_pred:
-                 p = np.argmax(sentence_tag, axis=-1)
-                 p = [idx2tag[tag_idx] for tag_idx in p]
+                 p = np.argmax(sentence_tag, axis=-1) # for each word, get the tag with maximum probabiliity out of all the possible tags
+                 p = [idx2tag[tag_idx] for tag_idx in p] # convert each tag from indice to name
                  conv_pred.append(p)
-            for sentence_tag in y:
+
+            for sentence_tag in y_sen:
                  sentence_tag = [idx2tag[tag_idx] for tag_idx in sentence_tag]
                  conv_gold.append(sentence_tag)
           
@@ -160,7 +169,7 @@ def save_plot(hist, train_str, val_str, metric, ds_num):
 
     plt.title('Dataset ' + ds_num)
     plt.legend()
-    plt.savefig(MODEL_PATH + ds_num + '_' + metric)
+    plt.savefig(MODEL_PATH + TIMESTR + ds_num + '_' + metric)
     plt.close()
 
 def draw_figures():
@@ -170,26 +179,29 @@ def draw_figures():
 
   # overall loss, training, and validation
   save_plot (hist, 'loss', 'val_loss', 'loss', 'Complete')
-  
-  # plot validation, and training loss, and accuracy across epochs, for each dataset
-  for i in range (1, NUM_DS+1):
-    # dataset i
+ 
+  if MULTI_OUT: 
+      # plot validation, and training loss, and accuracy across epochs, for each dataset
+      for i in range (1, NUM_DS+1):
+        # dataset i
 
-    # loss
-    loss_str = 'crf_' + str(i) + '_loss'
-    val_loss_str = 'val_' + loss_str
-    save_plot (hist, loss_str, val_loss_str, 'loss', str(i)) 
-  
-    # accuracy 
-    acc_str = 'crf_' + str(i) + '_crf_accuracy'
-    val_acc_str = 'val_' + acc_str
-    save_plot (hist, acc_str, val_acc_str, 'accuracy', str(i)) 
+        # loss
+        loss_str = 'crf_' + str(i) + '_loss'
+        val_loss_str = 'val_' + loss_str
+        save_plot (hist, loss_str, val_loss_str, 'loss', str(i)) 
+      
+        # accuracy 
+        acc_str = 'crf_' + str(i) + '_crf_accuracy'
+        val_acc_str = 'val_' + acc_str
+        save_plot (hist, acc_str, val_acc_str, 'accuracy', str(i))
+  else: # the validation accuracy is not dataset-specific
+       save_plot (hist, 'crf_accuracy', 'val_crf_accuracy', 'accuracy', 'Complete')
 
 # predict
 def predict (sentence, loaded_model):
     padding_len = load_dict_after('padding_len.json')
-    max_len = padding_len['max_len']
-    max_len_char = padding_len['max_len_char']
+    max_len = min (padding_len['max_len'] , MAX_LEN)
+    max_len_char = min(padding_len['max_len_char'], MAX_LEN_CHAR)
 
     idx2tag = {}
     ds_idx2tag = []
@@ -258,8 +270,8 @@ def predict (sentence, loaded_model):
 # fit model
 def fit_model (model, ds_X_word, ds_X_char, ds_y):
     padding_len = load_dict('padding_len.json')
-    max_len = padding_len['max_len']
-    max_len_char = padding_len['max_len_char']
+    max_len = min (padding_len['max_len'] ,MAX_LEN)
+    max_len_char = min(padding_len['max_len_char'], MAX_LEN_CHAR)
     
     y = []
     if MULTI_OUT == True:
@@ -349,8 +361,8 @@ def prepare_model (embedding_matrix, num_ds):
 
   padding_len = load_dict('padding_len.json')
  
-  max_len = padding_len['max_len']
-  max_len_char = padding_len['max_len_char']
+  max_len = min(padding_len['max_len'], MAX_LEN)
+  max_len_char = min(padding_len['max_len_char'], MAX_LEN_CHAR)
   
   n_words = len (word2idx)
   n_chars = len (char2idx)
@@ -542,21 +554,28 @@ def create_vocab(sentences):
 
 # function to load the dictionaries
 def load_dict(dict_name):
-  with open(DICT_PATH + timestr + dict_name, 'r') as fp:
+  with open(DICT_PATH + timestr +dict_name, 'r') as fp:
     data = json.load(fp)
   return data
 
 
 # function to replace words in sentence with indices, and pads to max sentence length.
 # Also replaces characters in words with indices, and pads to max word length
-def prepare_input (sentences):
+def prepare_input (sentences, dataset_split = 'train'):
   # load dictionaries
-  word2idx = load_dict('word2idx.json')
-  char2idx = load_dict('char2idx.json')
-  padding_len = load_dict('padding_len.json')
+  if dataset_split == 'train':
+      word2idx = load_dict('word2idx.json')
+      char2idx = load_dict('char2idx.json')
+      padding_len = load_dict('padding_len.json')
+  else:
+    # test split; load dictionaries from the pre-trained data
+      word2idx = load_dict_after('word2idx.json')
+      char2idx = load_dict_after('char2idx.json')
+      padding_len = load_dict_after('padding_len.json')
+    
 
-  max_len = padding_len['max_len']
-  max_len_char = padding_len['max_len_char']
+  max_len = min (padding_len['max_len'], MAX_LEN)
+  max_len_char = min( padding_len['max_len_char'], MAX_LEN_CHAR )
 
   # replace words with indices
   X_word = []
@@ -587,18 +606,29 @@ def prepare_input (sentences):
   return X_word, X_char
 
 # For each dataset, function to replace tags with indices, and pad it to max sentence length
-def prepare_tags (ds_tags):
+def prepare_tags (ds_tags, dataset_split = 'train'):
   ds_y = []
-  all_tag2idx =  load_dict('tag2idx.json')
+  if dataset_split == 'train':
+    all_tag2idx =  load_dict('tag2idx.json')
+  else: 
+    all_tag2idx =  load_dict_after('tag2idx.json')
+ 
   for i, tags in enumerate(ds_tags):
     # load dictionary
     if MULTI_OUT:
-        tag2idx = load_dict('tag2idx' + str(i) + '.json')
+        if dataset_split == 'train':
+            tag2idx = load_dict('tag2idx' + str(i) + '.json')
+        else:
+            tag2idx = load_dict_after('tag2idx' + str(i) + '.json')
     else:
         tag2idx = all_tag2idx
 
-    padding_len = load_dict('padding_len.json')
-    max_len = padding_len['max_len']
+    if dataset_split == 'train':
+        padding_len = load_dict('padding_len.json')
+    else:
+        padding_len = load_dict_after('padding_len.json')
+
+    max_len = min( padding_len['max_len'], MAX_LEN)
     
     y = [] 
     try:
