@@ -53,10 +53,12 @@ Use Dense as output layer: set USE_CRF to False
 ```
 
 4. Reproducing results. To run a pre-trained model, you need to change the TIMESTR variable in the utilities.py to the appropriate models timestr.
-In the current code, the TIMESTR set is for single-output multi-task model, so you can reporduce the results via:
+In the current code, the TIMESTR set is for single-output multi-task model, so you can reproduce the results via:
 
 ```
 cd scripts/
+Set utilities.py TIMESTR to the pre-trained model's timestr/ leave default
+Set DATASET_INDEX to -1, or a specific index from 0 to 4
 python evaluate.py
 
 ```
