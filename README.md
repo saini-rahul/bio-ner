@@ -1,7 +1,7 @@
 # BioNER - CSCE-633
 Biomedical Named Enity Recogntion: Course project for CSCE 633.
 
-Uses character-level BiLSTM layer, and then Bi-LSTM-CRF layers to do NER.
+Uses character-level BiLSTM layer, and then Bi-LSTM-CRF layers to do NER for biomedical entities.
 
 ## How to run? 
 1. Clone this repo using: 
@@ -9,7 +9,7 @@ Uses character-level BiLSTM layer, and then Bi-LSTM-CRF layers to do NER.
     git clone git@github.tamu.edu:rssaini/CSCE-633.git
 ```
 
-2. Copy the conda environment to satisfy the needed requirements for running the project. Within the project root folder:
+2. Use the below command to replicate the provided  conda environment to satisfy the requirements for running the project. Within the project root folder:
 ```
     cd scripts/
     conda env create -f environment.yml
@@ -22,7 +22,7 @@ Uses character-level BiLSTM layer, and then Bi-LSTM-CRF layers to do NER.
 ```
 4. Once, inside the conda environment, you can run the code. See the next section to see what to run to achieve what.
 
-5. Since the pre-trained word embeddings are large, download the the word embeddings first via:
+5. Since the pre-trained word embeddings are large, they are not provided as part of this repo. Download the word embeddings first via:
 
 ```
 mkdir word_embeddings
@@ -34,13 +34,24 @@ wget http://evexdb.org/pmresources/vec-space-models/PubMed-w2v.bin
 
 1. All the datasets are stored in data/datasets/, all the trained models, and history files get stored in model/, all the dictionaries, and embedding matrices get stored in data/dict/, word embeddings are stored in word\_embeddings
 
-2. The code is capable of running in two different modes, as multi-output, and as single output. This is controlled by setting 
+2. The code is capable of running in different modes. The only file to make changes is:
+```
+scripts/config.ini
+```
+
+3. The default configuration provided runs a multi-task (implying trained on all the datasets, and tags), with CRF, single-output-layer model (means there is no branching in output layer, and it uses CRF as the output layer): 
+
+## to reproduce the results on test set
 ```
 cd scripts/
-vi utilities.py
+python evaluate.py
+```
 
-Single Ouptut Layer: set MULTI_OUT to False 
-MULTI Output Layer: set MULTI_OUT to True
+## to predict on sentences
+```
+cd scripts/
+python predict.py
+type in related sentences, you can refer into data/datasets/ to get example sentences
 ```
 
 3. The code can also replace the CRF layer with a dense layer in the output layer. To control that: 
