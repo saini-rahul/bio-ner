@@ -51,6 +51,7 @@ python evaluate.py
 cd scripts/
 python new_gui.py
 # type in related sentences, you can refer into data/datasets/ to get example sentences
+# example sentence: Number of glucocorticoid receptors in lymphocytes and their sensitivity	to hormone action.
 ```
 
 ### to predict sentences on console
