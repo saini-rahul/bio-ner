@@ -74,7 +74,7 @@ python draw_figures.py
 
 
 7. For training a new model, from root directory of the git repo: 
-(Don’t runthis commandunless you are completely sure, as this will overwrite the files needed by GUI to runproperly.)
+(Don’t run this command unless you are completely sure, as this will overwrite the files needed by GUI to run properly.)
 ```
 cd scripts/
 Set the DATASET_INDEX in train.py to a specific index, if training a single task model, else keep it as -1 to train a multi-task model
