@@ -1,7 +1,34 @@
 name: keras-gpu-2.2.2
 channels:
+- conda-forge
+- anaconda
 - defaults
 dependencies:
+- asn1crypto=0.24.0=py36_0
+- boto=2.49.0=py36_0
+- boto3=1.9.111=py_0
+- botocore=1.12.112=py_0
+- cffi=1.12.3=py36h2e261b9_0
+- chardet=3.0.4=py36_1
+- cryptography=2.3.1=py36hc365091_0
+- docutils=0.14=py36_0
+- gensim=3.4.0=py36h14c3975_0
+- idna=2.8=py36_0
+- jmespath=0.9.4=py_0
+- nltk=3.4.1=py36_0
+- pycparser=2.19=py36_0
+- pyopenssl=19.0.0=py36_0
+- pysocks=1.6.8=py36_0
+- requests=2.21.0=py36_0
+- s3transfer=0.2.0=py36_0
+- smart_open=1.8.0=py36_0
+- urllib3=1.24.1=py36_0
+- cycler=0.10.0=py_1
+- kiwisolver=1.1.0=py36hc9558a2_0
+- matplotlib=3.0.3=py36_1
+- matplotlib-base=3.0.3=py36h5f35d83_1
+- pyparsing=2.4.0=py_0
+- tk=8.6.9=h84994c4_1001
 - _tflow_1100_select=0.0.1=gpu
 - _tflow_select=2.1.0=gpu
 - absl-py=0.5.0=py36_0
@@ -104,7 +131,6 @@ dependencies:
 - termcolor=1.1.0=py36_1
 - terminado=0.8.1=py36_1
 - testpath=0.4.2=py36_0
-- tk=8.6.8=hbc83047_0
 - tornado=5.1.1=py36h7b6447c_0
 - traitlets=4.3.2=py36_0
 - wcwidth=0.1.7=py36_0
@@ -121,10 +147,13 @@ dependencies:
   - jupyter-client==5.2.3
   - jupyter-console==6.0.0
   - jupyter-core==4.4.0
-  - keras==2.2.2
+  - keras==2.2.4
+  - keras-contrib==2.0.8
   - mkl-fft==1.0.10
   - mkl-random==1.0.2
   - prometheus-client==0.4.2
   - prompt-toolkit==2.0.7
-prefix: /sw/hprc/sw/Anaconda/3-5.0.0.1-new/envs/keras-gpu-2.2.2
+  - seqeval==0.0.9
+  - smart-open==1.8.0
+prefix: /scratch/user/rssaini/.conda/envs/keras-gpu-2.2.2
 
