@@ -46,8 +46,14 @@ scripts/config.ini
 cd scripts/
 python evaluate.py
 ```
+### to run a GUI to predict slots on sentences
+```
+cd scripts/
+python new_gui.py
+# type in related sentences, you can refer into data/datasets/ to get example sentences
+```
 
-### to predict on sentences
+### to predict sentences on console
 ```
 cd scripts/
 python predict.py
