@@ -22,6 +22,13 @@ Uses character-level BiLSTM layer, and then Bi-LSTM-CRF layers to do NER.
 ```
 4. Once, inside the conda environment, you can run the code. See the next section to see what to run to achieve what.
 
+5. Since the pre-trained word embeddings are large, download the the word embeddings first via:
+
+```
+mkdir word_embeddings
+cd word_embeddings/
+wget http://evexdb.org/pmresources/vec-space-models/PubMed-w2v.bin
+```
 
 ## What to run?
 
@@ -74,7 +81,7 @@ python draw_figures.py
 
 
 7. For training a new model, from root directory of the git repo: 
-(Don’t runthis commandunless you are completely sure, as this will overwrite the files needed by GUI to runproperly.)
+(Don’t run this command unless you are completely sure, as this will overwrite the files needed by GUI to run properly.)
 ```
 cd scripts/
 Set the DATASET_INDEX in train.py to a specific index, if training a single task model, else keep it as -1 to train a multi-task model
