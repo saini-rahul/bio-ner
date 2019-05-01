@@ -1,17 +1,18 @@
 # this program will train the datasets on the model, and save the fitted model
+# set the DATASET_INDEX variable here to -1 if you want to train the model over ALL datasets
+# Set it to a specific index if you just want the model to be trained for that dataset.
 
 from load_data import load_datasets
 from utilities import preprocess_sentences, create_vocab, create_vocab_tags, prepare_input, prepare_tags, load_embedding_matrix, prepare_model, fit_model
+import configparser
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-CLIP_SEN = 20000
+DATASET_INDEX = config['DEFAULT'].getint('DATASET_INDEX') # this controls whether we want to load sentences from all datasets (set it to -1), or we want a specific dataset, identified by the index
 
-
-print ("B: load")
 # STEP 1: load datasets
 # ds_sentences[i] contains the list of sentences for dataset i, and ds_tags[i] the corresponding tags
-ds_sentences, ds_tags = load_datasets () # by default, this will load the training datasets
-
-print ("B: preprocess")
+ds_sentences, ds_tags = load_datasets (dataset_index = DATASET_INDEX) # by default, this will load the training datasets
 
 # STEP 2: pre-process the data
 # replace digits across each dataset
@@ -20,16 +21,12 @@ for i, sentences in enumerate(ds_sentences): # iterate over each dataset
     ds_tags[i] = ds_tags[i][:20000]
     ds_sentences[i] = preprocess_sentences (sentences)
 
-print ("B: create_vocab")
-
 # STEP 3: create and save vocabulary dictionaries for words, and characters
 # as well as the length of each sentence, and length of each word
 consolidated_sen = []
 for sentences in ds_sentences:
     consolidated_sen.extend (sentences)
 create_vocab (consolidated_sen) # we will have just one common vocab across all datasets
-
-print ("B: tags vocab")
 
 # STEP 4: create separate vocab of tags across each dataset
 create_vocab_tags (ds_tags)

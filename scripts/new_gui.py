@@ -46,7 +46,7 @@ bottom_frame = Frame(root, bg="green", width=600, height = 200)
 bottom_frame.grid(row=1)
 
 submit_button = Button(top_frame, text ='Predict Slots', command = predict_slots)
-l1=Label(top_frame, text='Please type a sentence (about flights, movies, restaurants!) below, and press <Predict Slots>.')
+l1=Label(top_frame, text='Please type a sentence below, and press <Predict Slots>.')
 t1 = Text(top_frame,bd=0,font='Fixdsys -14')
 
 submit_button.pack()

@@ -15,24 +15,30 @@ import time
 import matplotlib.pyplot as plt
 from seqeval.metrics import precision_score, recall_score, f1_score, classification_report
 from gensim.models import KeyedVectors
+import configparser
+import json
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+TIMESTR = config['DEFAULT']['TIMESTR']
+EMBEDDING_FILE_NAME = config['DEFAULT']['EMBEDDING_FILE_NAME']
+PRINT_TO_SCREEN = config['DEFAULT'].getboolean('PRINT_TO_SCREEN')
+USE_CRF = config['DEFAULT'].getboolean('USE_CRF')
+MULTI_OUT =  config['DEFAULT'].getboolean('MULTI_OUT')
+MAX_LEN =  config['DEFAULT'].getint('MAX_LEN')
+MAX_LEN_CHAR =  config['DEFAULT'].getint('MAX_LEN_CHAR')
+EMBEDDING_DIM = config['DEFAULT'].getint('EMBEDDING_DIM')
+CHAR_EMBEDDING_DIM = config['DEFAULT'].getint('CHAR_EMBEDDING_DIM')
+EPOCHS = config['DEFAULT'].getint('EPOCHS')
+EMBEDDING_FILE_NAME = config['DEFAULT']['EMBEDDING_FILE_NAME']
+NUM_DS = len (json.loads(config.get("DATASETS","DATASETS")))
 
 timestr = time.strftime("%Y%m%d-%H%M%S") # to differentiate the models, and dictionaries generated during this run.
 DICT_PATH = '../data/dict/'
-TIMESTR = '20190426-042026'    # fill it with appropriate model's dictionary 
 MODEL_PATH = '../model/'
-EMBEDDING_FILE = '../word_embeddings/' + 'PubMed-w2v.bin'
-#EMBEDDING_FILE = '../word_embeddings/' +  'glove.6B.100d.txt'
-EMBEDDING_DIM = 200
-CHAR_EMBEDDING_DIM = 10
-NUM_DS = 5
-EPOCHS = 10
-MODEL_NAME = 'model20190426-042026.h5'
-HISTORY_FILE = 'history20190426-042026.json'
-PRINT_TO_SCREEN = False
-USE_CRF = True # if True, uses a CRF layer, if False uses a Dense layer
-MULTI_OUT = False # is True, uses multiple output, else clubs them together as one
-MAX_LEN = 100
-MAX_LEN_CHAR = 50
+EMBEDDING_FILE = '../word_embeddings/' + EMBEDDING_FILE_NAME
+MODEL_NAME = 'model' + TIMESTR + '.h5'
+HISTORY_FILE = 'history' + TIMESTR + '.json'
 
 # convert tags to multiple output format
 def convert_to_multi_output (ds_y, max_len):
@@ -223,11 +229,11 @@ def predict (sentence, loaded_model):
     sentences = []
     sentences.append(tokens)
     
-    # preprocess: remove digits, lowercase everything
+    # preprocess: remove digits
     sentences = preprocess_sentences (sentences)
     
     # pad the sentence
-    X_word, X_char = prepare_input (sentences)
+    X_word, X_char = prepare_input (sentences, dataset_split='test')
 
     # load the model
     model = loaded_model

@@ -6,17 +6,16 @@
 
 from load_data import load_datasets
 from utilities import preprocess_sentences, create_vocab, create_vocab_tags, prepare_input, prepare_tags, evaluate_on_model
+import configparser
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-# DATASETNAME choose from ATIS, MIT-R, MIT-M-1, MIT-M-2
-#DATASET_NAME = TestDataSet['ATIS']
-#DATASET_NAME = TestDataSet['MIT_M_ENG']
-#DATASET_NAME = TestDataSet['MIT_R']
-#DATASET_NAME = TestDataSet['MIT_M_TRIVIA']
-DATASET_INDEX = -1
+DATASET_INDEX = config['DEFAULT'].getint('DATASET_INDEX') # this controls whether we want to load sentences from all datasets (set it to -1), or we want a specific dataset, identified by th
+
 
 # STEP 1: load test datasets
 # ds_sentences[i] contains the list of sentences for dataset i, and ds_tags[i] the corresponding tags
-ds_sentences, ds_tags = load_datasets (dataset_split = 'test') # we want to load the test data files, and since dataset_name is not provided it will load the test files for all the datasets.
+ds_sentences, ds_tags = load_datasets (dataset_split = 'test', dataset_index = DATASET_INDEX) # we want to load the test data files, and since dataset_name is not provided it will load the test files for all the datasets.
 
 # STEP 2: pre-process the data
 # replace digits, and lowercase the words across each dataset

@@ -7,5 +7,9 @@ nltk.download('punkt')
 model = load_saved_model()
 
 while (1):
-    input_sen = input("Type a sentence to predict slots on!\n")
-    predict(input_sen, model)  
+    try:
+        input_sen = input("Type a sentence to predict slots on!\n")
+    except:
+        input_sen = None
+    if input_sen:
+        predict(input_sen, model)  
